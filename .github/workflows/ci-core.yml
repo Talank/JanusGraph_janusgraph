@@ -15,26 +15,7 @@
 name: CI Core
 
 on:
-  pull_request:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-  push:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-    branches-ignore:
-      - 'dependabot/**'
-
+  workflow_dispatch:
 env:
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
   VERIFY_MAVEN_OPTS: "-Pcoverage"
@@ -54,9 +35,12 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      fail-fast: false
   build-java11:
     needs: build-all
     runs-on: ubuntu-22.04
@@ -72,9 +56,12 @@ jobs:
         with:
           java-version: 11
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      fail-fast: false
   tests:
     runs-on: ubuntu-22.04
     needs: build-all
@@ -133,8 +120,10 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
-      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args }} ${{ matrix.args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
+      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args 
+          }} ${{ matrix.args }}
       - uses: actions/upload-artifact@v4
         with:
           name: jacoco-reports-${{ matrix.module }}-java-${{ matrix.java }}

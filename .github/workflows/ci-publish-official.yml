@@ -15,10 +15,7 @@
 name: CI Release official artifacts
 
 on:
-  push:
-    tags:
-      - v*.*.*
-
+  workflow_dispatch:
 jobs:
   build-all:
     runs-on: ubuntu-22.04
@@ -103,7 +100,8 @@ jobs:
       - name: Check distribution signature
         run: gpg --verify janusgraph-dist/target/${JG_DIST_NAME}.zip.asc janusgraph-dist/target/${JG_DIST_NAME}.zip
       - name: Check full distribution signature
-        run: gpg --verify janusgraph-dist/target/${JG_FULL_DIST_NAME}.zip.asc janusgraph-dist/target/${JG_FULL_DIST_NAME}.zip
+        run: gpg --verify janusgraph-dist/target/${JG_FULL_DIST_NAME}.zip.asc 
+          janusgraph-dist/target/${JG_FULL_DIST_NAME}.zip
       - name: Check documentation signature
         run: gpg --verify ${JG_DOC_DIST_NAME}.zip.asc ${JG_DOC_DIST_NAME}.zip
       - uses: ncipollo/release-action@v1
@@ -112,7 +110,9 @@ jobs:
           artifactErrorsFailBuild: true
           draft: true
           tag: "${{ env.RELEASE_TAG }}"
-          artifacts: "KEYS,${{ env.JG_DOC_DIST_NAME }}.zip.asc,${{ env.JG_DOC_DIST_NAME }}.zip,janusgraph-dist/target/${{ env.JG_DIST_NAME }}.zip.asc,janusgraph-dist/target/${{ env.JG_DIST_NAME }}.zip,janusgraph-dist/target/${{ env.JG_FULL_DIST_NAME }}.zip.asc,janusgraph-dist/target/${{ env.JG_FULL_DIST_NAME }}.zip,target/bom.json,target/bom.xml"
+          artifacts: "KEYS,${{ env.JG_DOC_DIST_NAME }}.zip.asc,${{ env.JG_DOC_DIST_NAME }}.zip,janusgraph-dist/target/${{
+            env.JG_DIST_NAME }}.zip.asc,janusgraph-dist/target/${{ env.JG_DIST_NAME }}.zip,janusgraph-dist/target/${{ env.JG_FULL_DIST_NAME
+            }}.zip.asc,janusgraph-dist/target/${{ env.JG_FULL_DIST_NAME }}.zip,target/bom.json,target/bom.xml"
           name: "${{ env.JG_VER }}"
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true
@@ -136,3 +136,5 @@ jobs:
             ```
 
             For more information on features and bug fixes in ${{env.JG_VER}}, see [this GitHub milestone](https://github.com/JanusGraph/janusgraph/milestone/*MILESTONE_NUMBER*?closed=1).
+    strategy:
+      fail-fast: false

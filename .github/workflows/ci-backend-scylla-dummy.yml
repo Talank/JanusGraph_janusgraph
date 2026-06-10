@@ -15,27 +15,7 @@
 name: CI Backend ScyllaDB
 
 on:
-  pull_request:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-  push:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-    branches-ignore:
-      - 'dependabot/**'
-
+  workflow_dispatch:
 env:
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
   VERIFY_MAVEN_OPTS: "-Pcoverage"
@@ -55,9 +35,12 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      fail-fast: false
   tests:
     runs-on: ubuntu-22.04
     needs: build-all

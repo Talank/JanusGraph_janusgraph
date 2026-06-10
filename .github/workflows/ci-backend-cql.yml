@@ -15,27 +15,7 @@
 name: CI Backend CQL
 
 on:
-  pull_request:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-  push:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-    branches-ignore:
-      - 'dependabot/**'
-
+  workflow_dispatch:
 env:
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
   VERIFY_MAVEN_OPTS: "-Pcoverage"
@@ -55,9 +35,12 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      fail-fast: false
   tests:
     runs-on: ubuntu-22.04
     needs: build-all
@@ -241,8 +224,10 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
-      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args }} ${{ matrix.args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
+      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args 
+          }} ${{ matrix.args }}
       - uses: actions/upload-artifact@v4
         with:
           name: jacoco-reports-${{ matrix.module }}-${{ matrix.name }}
@@ -255,7 +240,7 @@ jobs:
 
   full-tests:
     runs-on: ubuntu-22.04
-    if: "github.event_name == 'push' && contains(github.event.head_commit.message, '[cql-tests]') || github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[cql-tests]')"
+    if: "always()"
     needs: build-all
     timeout-minutes: 480
     strategy:
@@ -292,5 +277,7 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
-      - run: mvn verify --projects janusgraph-${{ matrix.module }} -Dcassandra.docker.version='3.0.18' ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
+      - run: mvn verify --projects janusgraph-${{ matrix.module }} -Dcassandra.docker.version='3.0.18' ${{ 
+          env.VERIFY_MAVEN_OPTS }} ${{ matrix.args }}
