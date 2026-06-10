@@ -15,29 +15,7 @@
 name: CI Release
 
 on:
-  pull_request:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-  push:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-    branches-ignore:
-      - 'dependabot/**'
-  schedule:
-    - cron:  '0 0 * * 3'
-
+  workflow_dispatch:
 env:
   ES_JAVA_OPTS: "-Xms256m -Xmx512m"
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
@@ -45,7 +23,7 @@ env:
 
 jobs:
   build-all:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -58,11 +36,19 @@ jobs:
         with:
           java-version: "8.0.382+5"
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      matrix:
+        os: &id001
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+      fail-fast: false
   dist-tests:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     needs: build-all
     strategy:
       fail-fast: false
@@ -74,6 +60,7 @@ jobs:
           - args: "-Pjava-11"
             java: 11
             tag_suffix: "-java-11"
+        os: *id001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -83,12 +70,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
-        if: "matrix.java == 8"
+        if: "always()"
         with:
           java-version: "8.0.382+5"
           distribution: zulu
       - uses: actions/setup-java@v4
-        if: "matrix.java == 11"
+        if: "always()"
         with:
           java-version: "11.0.20+1"
           distribution: zulu
@@ -109,7 +96,7 @@ jobs:
           echo "JG_VER=${JG_VER}" >> $GITHUB_ENV
       - name: Run Trivy vulnerability scanner
         id: trivy_scan_step
-        if: github.repository == 'janusgraph/janusgraph'
+        if: always()
         # TODO: currently this step is tentative because of the rate-limiting issue.
         # Thus, we add `continue-on-error: true` here, but we should remove it
         # when either the issue is fixed (see: https://github.com/aquasecurity/trivy-action/issues/389)
@@ -124,14 +111,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Trivy scan results to GitHub Security tab
-        if: github.repository == 'janusgraph/janusgraph' && success() && steps.trivy_scan_step.outcome == 'success'
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
   tp-tests:
-    runs-on: ubuntu-22.04
-    if: "github.event_name == 'push' && contains(github.event.head_commit.message, '[tp-tests]') || github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[tp-tests]') || github.event_name == 'schedule'"
+    runs-on: ${{ matrix.os }}
+    if: "always()"
     needs: build-all
     strategy:
       fail-fast: false
@@ -180,6 +167,7 @@ jobs:
             install-args: "-Pjava-11"
             args: "-Dtest.skip.tp=false -DskipTests=true"
             java: 11
+        os: *id001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -189,14 +177,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - uses: actions/setup-java@v4
-        if: "matrix.java == 8"
+        if: "always()"
         with:
           java-version: "8.0.382+5"
           distribution: zulu
       - uses: actions/setup-java@v4
-        if: "matrix.java == 11"
+        if: "always()"
         with:
           java-version: "11.0.20+1"
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
       - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ matrix.install-args }} ${{ matrix.args }}

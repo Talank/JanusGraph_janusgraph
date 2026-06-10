@@ -15,14 +15,10 @@
 name: CI Release commit artifacts
 
 on:
-  push:
-    branches:
-      - master
-      - v*
-
+  workflow_dispatch:
 jobs:
   commit-publish:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
       packages: write
@@ -55,7 +51,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove version SNAPSHOT suffix if exists
-        run:  mvn versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
+        run: mvn versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
       - name: Set JanusGraph version environment variable
         run: |
           export JG_VER="$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)-$(date '+%Y%m%d-%H%M%S').$(git rev-parse --short HEAD)"
@@ -79,8 +75,16 @@ jobs:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       - name: Setup unique version
-        run:  mvn versions:set -DnewVersion="$JG_VER" -DgenerateBackupPoms=false
+        run: mvn versions:set -DnewVersion="$JG_VER" -DgenerateBackupPoms=false
       - name: Make JanusGraph JAR artifacts
         run: mvn clean install -Pjanusgraph-release -DskipTests=true
       - name: Deploy JanusGraph JAR artifacts into staging repository
-        run: mvn deploy -Pjanusgraph-release,janusgraph-commit-release -DskipTests=true -DautoReleaseAfterClose=true -Ddescription="$JG_DESCRIPTION" -DstagingDescription="$JG_DESCRIPTION"
+        run: mvn deploy -Pjanusgraph-release,janusgraph-commit-release -DskipTests=true -DautoReleaseAfterClose=true 
+          -Ddescription="$JG_DESCRIPTION" -DstagingDescription="$JG_DESCRIPTION"
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+      fail-fast: false

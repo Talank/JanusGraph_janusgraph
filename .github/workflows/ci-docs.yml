@@ -15,11 +15,7 @@
 name: CI Docs
 
 on:
-  pull_request:
-  push:
-    branches-ignore:
-      - 'dependabot/**'
-
+  workflow_dispatch:
 env:
   STRUCTOR_VERSION: v1.13.2
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
@@ -27,7 +23,7 @@ env:
 
 jobs:
   build-all:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -40,11 +36,19 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      matrix:
+        os: &id001
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+      fail-fast: false
   build-doc:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     needs: build-all
     steps:
       - uses: actions/checkout@v4
@@ -63,11 +67,15 @@ jobs:
       - run: docker build -t doc-site:mkdocs -f docs.Dockerfile .
       - run: docker run --rm -v $PWD:/mkdocs doc-site:mkdocs mkdocs build
       - uses: actions/upload-artifact@v4
-        if: github.ref != 'refs/heads/master'
+        if: always()
         with:
           name: distribution-doc-builds
           path: site
 
+    strategy:
+      matrix:
+        os: *id001
+      fail-fast: false
   deploy-doc:
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/master'
@@ -78,14 +86,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - run: mkdir ./bin
-      - run: curl -sfL https://raw.githubusercontent.com/traefik/structor/master/godownloader.sh | bash -s -- -b ./bin ${STRUCTOR_VERSION}
-      - run: sudo ./bin/structor -o janusgraph -r janusgraph
-            --force-edit-url
-            --rqts-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/requirements.txt"
-            --dockerfile-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs.Dockerfile"
-            --dockerfile-name="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs.Dockerfile"
-            --menu.js-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs/theme/structor-menu.js.gotmpl"
-            --exp-branch=master --debug
+      - run: curl -sfL https://raw.githubusercontent.com/traefik/structor/master/godownloader.sh | bash -s -- -b ./bin 
+          ${STRUCTOR_VERSION}
+      - run: sudo ./bin/structor -o janusgraph -r janusgraph --force-edit-url 
+          --rqts-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/requirements.txt" 
+          --dockerfile-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs.Dockerfile" 
+          --dockerfile-name="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs.Dockerfile" 
+          --menu.js-url="https://raw.githubusercontent.com/JanusGraph/janusgraph/master/docs/theme/structor-menu.js.gotmpl"
+          --exp-branch=master --debug
       - run: sudo chown -R $(id -u):$(id -g) .
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
