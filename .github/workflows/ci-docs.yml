@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 env:
   STRUCTOR_VERSION: v1.13.2
-  BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
+  BUILD_MAVEN_OPTS: "-Dmaven.javadoc.skip=true -DskipTests=true --batch-mode --also-make"
   VERIFY_MAVEN_OPTS: "-Pcoverage"
 
 jobs:
@@ -36,8 +36,7 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
-          env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
     strategy:
