@@ -35,6 +35,7 @@ on:
     - '*.md'
     branches-ignore:
       - 'dependabot/**'
+      - 'test-pr'
   schedule:
     - cron:  '0 0 * * 3'
 

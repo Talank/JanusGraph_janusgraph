@@ -35,6 +35,7 @@ on:
     - '*.md'
     branches-ignore:
       - 'dependabot/**'
+      - 'test-pr'
 
 env:
   ES_JAVA_OPTS: "-Xms256m -Xmx512m"

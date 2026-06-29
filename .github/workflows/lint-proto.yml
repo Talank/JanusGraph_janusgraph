@@ -25,6 +25,7 @@ on:
     - '.github/workflows/lint-proto.yml'
     branches-ignore:
       - 'dependabot/**'
+      - 'test-pr'
 
 jobs:
   lint-proto:

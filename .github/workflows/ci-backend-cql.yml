@@ -35,6 +35,7 @@ on:
     - '*.md'
     branches-ignore:
       - 'dependabot/**'
+      - 'test-pr'
 
 env:
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"

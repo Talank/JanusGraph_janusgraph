@@ -24,6 +24,7 @@ on:
     - 'mkdocs.yml'
     - 'docs.Dockerfile'
     - '*.md'
+  workflow_dispatch:
   push:
     paths-ignore:
     - 'docs/**'
@@ -41,7 +42,11 @@ env:
 
 jobs:
   build-all:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -54,7 +59,9 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - env:
+          MAVEN_OPTS: "-Dmaven.javadoc.skip=true"
+        run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
   build-java11:
@@ -72,7 +79,9 @@ jobs:
         with:
           java-version: 11
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - env:
+          MAVEN_OPTS: "-Dmaven.javadoc.skip=true"
+        run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
   tests:
