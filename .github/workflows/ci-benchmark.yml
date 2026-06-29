@@ -37,7 +37,9 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+      - env:
+          MAVEN_OPTS: "-Dmaven.javadoc.skip=true"
+        run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache ${{
           env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
     strategy:
@@ -70,7 +72,9 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install -Pjanusgraph-benchmark ${{ env.BUILD_MAVEN_OPTS }} -Dgpg.skip=true
+      - env:
+          MAVEN_OPTS: "-Dgpg.skip=true"
+        run: mvn clean install -Pjanusgraph-benchmark ${{ env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-benchmark
         env:
           CCM_CLUSTER_START_DEFAULT_TIMEOUT: 300
