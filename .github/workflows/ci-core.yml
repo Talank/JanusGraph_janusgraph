@@ -60,8 +60,8 @@ jobs:
           java-version: 8
           distribution: zulu
       - env:
-          MAVEN_OPTS: "-Dmaven.javadoc.skip=true"
-        run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache ${{ env.BUILD_MAVEN_OPTS }}
+          MAVEN_OPTS: "-DskipTests=true -Dmaven.javadoc.skip=true"
+        run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache --batch-mode --also-make
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
   build-java11:
@@ -80,8 +80,8 @@ jobs:
           java-version: 11
           distribution: zulu
       - env:
-          MAVEN_OPTS: "-Dmaven.javadoc.skip=true"
-        run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache ${{ env.BUILD_MAVEN_OPTS }}
+          MAVEN_OPTS: "-DskipTests=true -Dmaven.javadoc.skip=true"
+        run: mvn clean install --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache --batch-mode --also-make
       - run: mvn verify --projects janusgraph-all -Pjava-11 -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
   tests:
