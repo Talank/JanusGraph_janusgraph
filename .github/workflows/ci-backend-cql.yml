@@ -15,34 +15,14 @@
 name: CI Backend CQL
 
 on:
-  pull_request:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-  push:
-    paths-ignore:
-    - 'docs/**'
-    - '.github/workflows/ci-docs.yml'
-    - '.github/ISSUE_TEMPLATE/**'
-    - 'requirements.txt'
-    - 'mkdocs.yml'
-    - 'docs.Dockerfile'
-    - '*.md'
-    branches-ignore:
-      - 'dependabot/**'
-
+  workflow_dispatch:
 env:
   BUILD_MAVEN_OPTS: "-DskipTests=true --batch-mode --also-make"
   VERIFY_MAVEN_OPTS: "-Pcoverage"
 
 jobs:
   build-all:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -55,11 +35,18 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ env.BUILD_MAVEN_OPTS }}
+      - run: mvn clean install --projects janusgraph-all -Pjanusgraph-cache -Dmaven.javadoc.skip=true ${{ 
+          env.BUILD_MAVEN_OPTS }}
       - run: mvn verify --projects janusgraph-all -Pjanusgraph-cache ${{ env.VERIFY_MAVEN_OPTS }}
 
+    strategy:
+      matrix:
+        os: &id001
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+      fail-fast: false
   tests:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     needs: build-all
     strategy:
       fail-fast: false
@@ -227,6 +214,7 @@ jobs:
             name: cassandra4-murmur-client-auth
             install-args: "-Pjava-11"
             java: 11
+        os: *id001
     steps:
       - uses: actions/checkout@v4
         with:
@@ -241,8 +229,10 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
-      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args }} ${{ matrix.args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
+      - run: mvn verify --projects janusgraph-${{ matrix.module }} ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.install-args 
+          }} ${{ matrix.args }}
       - uses: actions/upload-artifact@v4
         with:
           name: jacoco-reports-${{ matrix.module }}-${{ matrix.name }}
@@ -254,8 +244,8 @@ jobs:
           name: codecov-cql-${{ matrix.name }}-java-${{ matrix.java }}
 
   full-tests:
-    runs-on: ubuntu-22.04
-    if: "github.event_name == 'push' && contains(github.event.head_commit.message, '[cql-tests]') || github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[cql-tests]')"
+    runs-on: ${{ matrix.os }}
+    if: "always()"
     needs: build-all
     timeout-minutes: 480
     strategy:
@@ -280,6 +270,7 @@ jobs:
             args: "-Pcassandra3-murmur-ssl -Dtest=\"**/diskstorage/cql/CQLStoreTest.java\""
           - module: cql
             args: "-Pcassandra3-murmur-client-auth -Dtest=\"**/diskstorage/cql/CQLStoreTest.java\""
+        os: *id001
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -292,5 +283,7 @@ jobs:
         with:
           java-version: 8
           distribution: zulu
-      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ matrix.install-args }}
-      - run: mvn verify --projects janusgraph-${{ matrix.module }} -Dcassandra.docker.version='3.0.18' ${{ env.VERIFY_MAVEN_OPTS }} ${{ matrix.args }}
+      - run: mvn clean install --projects janusgraph-${{ matrix.module }} ${{ env.BUILD_MAVEN_OPTS }} ${{ 
+          matrix.install-args }}
+      - run: mvn verify --projects janusgraph-${{ matrix.module }} -Dcassandra.docker.version='3.0.18' ${{ 
+          env.VERIFY_MAVEN_OPTS }} ${{ matrix.args }}
